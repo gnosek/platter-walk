@@ -210,7 +210,6 @@ impl ToScan {
 
         let consumed = self.prefetched.iter().map(|ref tuple| tuple.1).sum::<u64>();
         let mut remaining = LIMIT.saturating_sub(consumed);
-        let prev_fetched = self.prefetched.len();
 
         // hysteresis
         if remaining < LIMIT/2 {
@@ -293,8 +292,6 @@ impl ToScan {
             }
 
         }
-
-        //println!("bytes: {} -> {}, f: {}->{}, sc: {}", LIMIT-consumed, remaining, prev_fetched ,self.prefetched.len(), self.prefetch_cap);
 
         if prune.len() > 0 {
             self.mountpoints.retain(|e| prune.contains(&e.spec));
