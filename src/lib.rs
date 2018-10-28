@@ -13,10 +13,14 @@ use std::fs::*;
 use std::os::unix::fs::DirEntryExt;
 use std::path::PathBuf;
 use std::collections::{BTreeMap, HashMap, VecDeque};
-use std::collections::Bound::{Included, Excluded};
+use std::collections::Bound::Included;
 use std::path::Path;
 use std::os::unix::fs::MetadataExt;
+
+#[cfg(target_os = "linux")]
 use std::os::unix::io::AsRawFd;
+#[cfg(target_os = "linux")]
+use std::collections::Bound::Excluded;
 
 pub struct Entry {
     path: PathBuf,
@@ -47,6 +51,7 @@ impl Entry {
         self.path.as_path()
     }
 
+    #[cfg(target_os = "linux")]
     fn extent_sum(&self) -> u64 {
         self.extents.iter().map(|e| e.length).sum()
     }
@@ -195,6 +200,7 @@ impl ToScan {
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn prefetch(&mut self) {
         if self.mountpoints.is_empty() {
             return;
@@ -277,8 +283,8 @@ impl ToScan {
 
                         i+=1;
 
-                        unsafe {
-                            libc::posix_fadvise(f.as_raw_fd(), offset as i64, (end - offset) as i64, libc::POSIX_FADV_WILLNEED);
+			unsafe {
+			    libc::posix_fadvise(f.as_raw_fd(), offset as i64, (end - offset) as i64, libc::POSIX_FADV_WILLNEED);
                         }
                     }
                 } else {
@@ -295,6 +301,10 @@ impl ToScan {
         }
 
 
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn prefetch(&mut self) {
     }
 
     pub fn add(&mut self, to_add : Entry, pos : Option<u64>) {
